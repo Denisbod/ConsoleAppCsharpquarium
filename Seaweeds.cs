@@ -6,33 +6,43 @@ namespace ConsoleAppCsharpquarium
 {
     public class Seaweeds : Alives
     {
-        public Seaweeds(int age)
+
+        public Seaweeds(int id, int pv, int age, Aquarium habitat)
         {
-            //this.IsAlive = true;
-            this.PV = 10;
+            this.Id = id;
+            this.PV = pv;
             this.Age = age;
+            this.Habitat = habitat;
         }
-
-        public void Grow(List<Seaweeds> liste_algues, int i)
-        {
-            liste_algues[i].PV++;
-        }
-
-        //public void CheckAlive(List<Seaweeds> liste_algues, int i)
+        //public Seaweeds(int age, Aquarium habitat)
         //{
-        //    if (liste_algues[i].PV > 0) liste_algues[i].IsAlive = true;
-        //    else liste_algues[i].IsAlive = false;
+        //    this.Age = age;
+        //    this.Habitat = habitat;
         //}
-
-        public void TooOld(List<Seaweeds> liste_algues, int i)
+        public void Grow(List<Seaweeds> liste_algues)
         {
-            liste_algues[i].Age++;
-            if (liste_algues[i].Age > 20)
+            if (this.IsAlive)
             {
-                liste_algues[i].PV = 0;
-                //liste_algues[i].IsAlive = false;
+                this.PV++;
+                this.ChangementEtat?.Invoke("Changement");
             }
-        }
+            //if (this.PV > 10)
+            //{
+            //    this.ChangementEtat?.Invoke("Naissance");
 
+            //    //this.Habitat.AddSeaweeds(1);
+            //    //liste_algues[liste_algues.Count - 1].PV = 5;
+            //    this.PV = 5;
+            //}
+        }
+        public void TooOld()
+        {
+            this.Age++;
+            if (this.Age > 20)
+            {
+                this.PV = 0;
+            }
+            this.ChangementEtat?.Invoke("Changement");
+        }
     }
 }

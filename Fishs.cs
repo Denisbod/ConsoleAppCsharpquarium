@@ -6,72 +6,75 @@ namespace ConsoleAppCsharpquarium
 {
     public class Fishs : Alives
     {
-        Random dice = new Random();
-
-        public Aquarium Habitat { get; private set; }
+        public Random dice = new Random();
         public string Name { get; private set; }
         public Gender Sex { get; private set; }
         public Races Race { get; private set; }
-        public bool IsHungry { get; private set; }
-
-        public Fishs(string nom, Gender sexe, Races race, int age, Aquarium habitat)
+        public bool Had_a_date { get; private set; }
+        public Fishs(int id, int pv, int age, string nom, Gender sexe, Races race, Aquarium habitat)
         {
+            this.Id = id;
+            this.PV = pv;
             this.Name = nom;
             this.Sex = sexe;
             this.Race = race;
-            this.IsHungry = true;
-            //this.IsAlive = true;
-            this.PV = 10;
             this.Age = age;
+            this.Habitat = habitat;
+            this.Had_a_date = false;
         }
-
-        public void Hungry(List<Fishs> liste_poissons, int i)
-        {
-            liste_poissons[i].PV--;
-            //liste_poissons[i].CheckAlive(liste_poissons, i); ;
-        }
-
-        public void CheckHungry(List<Fishs> liste_poissons, int i)
-        {
-            if (liste_poissons[i].PV <= 5) liste_poissons[i].IsHungry = true;
-            else liste_poissons[i].IsHungry = false;
-        }
-
-        //public void CheckAlive(List<Fishs> liste_poissons, int i)
+        //public Fishs(string nom, Gender sexe, Races race, int age, Aquarium habitat)
         //{
-        //    if (this.PV > 0) this.IsAlive = true;
-        //    else liste_poissons[i].IsAlive = false;
+        //    this.Name = nom;
+        //    this.Sex = sexe;
+        //    this.Race = race;
+        //    this.Age = age;
+        //    this.Habitat = Habitat;
+        //    this.Had_a_date = false;
         //}
-
-        public void TooOld(List<Fishs> liste_poissons, int i)
+        public void TooOld()
         {
-            if ((liste_poissons[i].Race == Races.Sole || liste_poissons[i].Race == Races.PoissonClown) && (liste_poissons[i].Age == 10))
+            this.Age++;
+            if (this.IsAlive && this.Age > 20)
             {
-                liste_poissons[i].Sex = (liste_poissons[i].Sex == Gender.Female) ? Gender.Male : Gender.Female;
+                this.PV = 0;
             }
-            liste_poissons[i].Age++;
-            if (liste_poissons[i].Age>20)
+            this.ChangementEtat?.Invoke("Changement");
+            if (this.IsAlive && (this.Race == Races.Bar || this.Race == Races.Merou) && this.Age == 11)
             {
-                liste_poissons[i].PV = 0;
-                //liste_poissons[i].IsAlive = false;
+                this.Sex = (this.Sex == Gender.Female) ? Gender.Male : Gender.Female;
+                //ICI!!!
+                this.ChangementEtat?.Invoke("Changement");
+            }     
+        }
+        public void Hungry(List<Fishs> liste_poissons, int i, List<Seaweeds> liste_algues)
+        {
+            this.PV--;
+            this.ChangementEtat?.Invoke("Changement");
+            if (this.IsAlive && this.PV <=5)
+            {
+                this.Eat(liste_poissons, liste_algues);
+            }
+            else if (this.IsAlive && !this.Had_a_date)
+            {
+                this.MakeBabies(liste_poissons, i);
             }
         }
 
-        public void Eat(List<Fishs> liste_poissons, List<Seaweeds> liste_algues, int i)
+        public void Eat(List<Fishs> liste_poissons, List<Seaweeds> liste_algues)
         {
-            switch (liste_poissons[i].Race)
+            switch (this.Race)
             {
                 case Races.Merou:
                 case Races.Thon:
                 case Races.PoissonClown:
                     int CarnivorousFood = dice.Next(liste_poissons.Count);
-                    if (liste_poissons[CarnivorousFood].IsAlive && liste_poissons[i].Race != liste_poissons[CarnivorousFood].Race)
+                    if (liste_poissons[CarnivorousFood].IsAlive && this.Race != liste_poissons[CarnivorousFood].Race)
                     {
                         liste_poissons[CarnivorousFood].PV -= 4;
-                        //liste_poissons[CarnivorousFood].CheckAlive(liste_poissons, CarnivorousFood);
-                        liste_poissons[CarnivorousFood].CheckHungry(liste_poissons, CarnivorousFood);
-                        liste_poissons[i].PV += 5;
-                        liste_poissons[i].CheckHungry(liste_poissons, i);
+                        liste_poissons[CarnivorousFood].ChangementEtat?.Invoke("Changement");
+                        this.PV += 5;
+                        //ICI!!!
+                        this.ChangementEtat?.Invoke("Changement");
                     }
                     break;
                 case Races.Sole:
@@ -83,9 +86,10 @@ namespace ConsoleAppCsharpquarium
                         if (liste_algues[HerbivorousFoods].IsAlive)
                         {
                             liste_algues[HerbivorousFoods].PV -= 2;
-                            //liste_algues[HerbivorousFoods].CheckAlive(liste_algues, HerbivorousFoods);
-                            liste_poissons[i].PV += 3;
-                            liste_poissons[i].CheckHungry(liste_poissons, i);
+                            liste_algues[HerbivorousFoods].ChangementEtat?.Invoke("Changement");
+                            this.PV += 3;
+                            //ICI!!!
+                            this.ChangementEtat?.Invoke("Changement");
                         }
                     }
                     break;
@@ -93,35 +97,34 @@ namespace ConsoleAppCsharpquarium
         }
         public void MakeBabies(List<Fishs> liste_poissons, int i)
         {
-            switch (liste_poissons[i].Race)
+            switch (this.Race)
             {
                 case Races.Carpe:
                 case Races.Thon:
-                    int Monosexe = dice.Next(liste_poissons.Count);
-                    if (liste_poissons[Monosexe].IsAlive && liste_poissons[i].Race == liste_poissons[Monosexe].Race && liste_poissons[i].Sex != liste_poissons[Monosexe].Sex)
-                    {
-                        liste_poissons.Add(new Fishs("Baby"+ (liste_poissons.Count + 1).ToString(), (dice.Next(2) == 0) ? Gender.Male : Gender.Female, liste_poissons[i].Race, 0));
-                    }
-                    break;
-                
                 case Races.Bar:
                 case Races.Merou:
-                    int Hermaphrodite = dice.Next(liste_poissons.Count);
-                    if (liste_poissons[Hermaphrodite].IsAlive && liste_poissons[i].Race != liste_poissons[Hermaphrodite].Race && liste_poissons[i].Sex != liste_poissons[Hermaphrodite].Sex)
+                    int NonOppOrtunistic = dice.Next(liste_poissons.Count);
+                    if (liste_poissons[NonOppOrtunistic].IsAlive && liste_poissons[NonOppOrtunistic].Age > 0 && !liste_poissons[NonOppOrtunistic].Had_a_date && this.Race == liste_poissons[NonOppOrtunistic].Race && this.Sex != liste_poissons[NonOppOrtunistic].Sex)
                     {
-                        liste_poissons.Add(new Fishs("Baby" + (liste_poissons.Count + 1).ToString(), (dice.Next(2) == 0) ? Gender.Male : Gender.Female, liste_poissons[i].Race, 0));
+                        this.Had_a_date = true;
+                        liste_poissons[NonOppOrtunistic].Had_a_date = true;
+                        this.ChangementEtat?.Invoke("Naissance");
+                        //liste_poissons.Add(new Fishs("Baby" + (liste_poissons.Count + 1).ToString(), (dice.Next(2) == 0) ? Gender.Male : Gender.Female, this.Race, 0, this.Habitat));
                     }
                     break;
                 case Races.Sole:
                 case Races.PoissonClown:
-                    int Opportuniste = dice.Next(liste_poissons.Count);
-                    if (liste_poissons[Opportuniste].IsAlive && liste_poissons[i].Race != liste_poissons[Opportuniste].Race)
+                    int Opportunistic = dice.Next(liste_poissons.Count);
+                    if (liste_poissons[Opportunistic].IsAlive && liste_poissons[Opportunistic].Age > 0 && !liste_poissons[Opportunistic].Had_a_date && this.Race == liste_poissons[Opportunistic].Race)
                     {
-                        if (liste_poissons[i].Sex == liste_poissons[Opportuniste].Sex)
+                        if (this.Sex == liste_poissons[Opportunistic].Sex)
                         {
-                            liste_poissons[i].Sex = (liste_poissons[i].Sex == Gender.Female) ? Gender.Male : Gender.Female;
+                            this.Sex = (this.Sex == Gender.Female) ? Gender.Male : Gender.Female;
                         }
-                        liste_poissons.Add(new Fishs("Baby" + (liste_poissons.Count + 1).ToString(), (dice.Next(2) == 0) ? Gender.Male : Gender.Female, liste_poissons[i].Race, 0));
+                        this.Had_a_date = true;
+                        liste_poissons[Opportunistic].Had_a_date = true;
+                        this.ChangementEtat?.Invoke("Naissance");
+                        //liste_poissons.Add(new Fishs("Baby" + (liste_poissons.Count + 1).ToString(), (dice.Next(2) == 0) ? Gender.Male : Gender.Female, liste_poissons[i].Race, 0, this.Habitat));
                     }
                     break;
             }

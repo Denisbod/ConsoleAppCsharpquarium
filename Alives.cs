@@ -4,18 +4,39 @@ using System.Text;
 
 namespace ConsoleAppCsharpquarium
 {
-    public class Alives
+    public abstract class Alives
     {
+        public Action<string> ChangementEtat;
+        public Aquarium Habitat { get; protected set; }
         public bool IsAlive { get { return this.PV > 0; } }
 
-        public int PV { get; set; }
+        public int Id { get; set; }
 
-        public int Age { get; set; }
-        public Alives()
+        private int _pv = 10;
+        public int PV
         {
-            //this.IsAlive = true;
-            //this.PV = 10;
-            //this.Age = Age;
+            get
+            {
+                return _pv;
+            }
+
+            set
+            {
+                _pv = value;
+
+                if (PV <= 0)
+                {
+                    ChangementEtat?.Invoke("Mort");
+                }
+                if (this is Seaweeds && PV > 10)
+                {
+                    this.ChangementEtat?.Invoke("Naissance");
+                    this._pv = 5;
+                    //this.Habitat?.AddSeaweeds(1);
+                }
+            }
         }
+        public int Age { get; set; }
     }
 }
+ 

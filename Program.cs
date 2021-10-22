@@ -1,4 +1,7 @@
-﻿using System;
+﻿using ConsoleAppCsharpquarium.Services;
+using System;
+using System.Collections.Generic;
+using System.Data.SqlClient;
 
 namespace ConsoleAppCsharpquarium
 {
@@ -6,38 +9,138 @@ namespace ConsoleAppCsharpquarium
     {
         static void Main(string[] args)
         {
-            //if (!Convert.ToBoolean((int)Gender.Female)) Console.WriteLine($"Male");
-            //else Console.WriteLine($"Female");
-            //Console.ReadLine();
+            //string ConnectionString = @"Data Source=Sonic-9;Initial Catalog=CsharpQuarium;Uid=sa;pwd=formation;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
 
-            Aquarium aquarium = new Aquarium();
+            string ConnectionString = @"Data Source=DESKTOP-JGTVP0O;Initial Catalog=CsharpQuarium;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
 
-            aquarium.AddSeaweeds(20);
-            aquarium.AddSeaweeds(9);
-            aquarium.AddSeaweeds(1);
-
-            aquarium.AddFishs("Toto1", Gender.Male, Races.Carpe, 4);
-            aquarium.AddFishs("Toto2", Gender.Female, Races.Carpe, 1);
-            aquarium.AddFishs("Toto33", Gender.Male, Races.Bar, 20);
-            aquarium.AddFishs("Toto3", Gender.Male, Races.Bar, 5);
-            aquarium.AddFishs("Toto44", Gender.Female, Races.Bar,1);
-            aquarium.AddFishs("Toto4", Gender.Female, Races.Sole, 1);
-            aquarium.AddFishs("Toto3", Gender.Male, Races.Sole, 20);
-            aquarium.AddFishs("Titi1", Gender.Male, Races.Merou, 2);
-            aquarium.AddFishs("Titi2", Gender.Female, Races.Merou, 3);
-            aquarium.AddFishs("Tutu1", Gender.Male, Races.PoissonClown, 4);
-            aquarium.AddFishs("Tutu2", Gender.Female, Races.PoissonClown, 1);
-            aquarium.AddFishs("Tutu5", Gender.Female, Races.Thon, 1);
-
-
-            for (int i = 0; i < 21; i++)
+            using (SqlConnection oConn = new SqlConnection(ConnectionString))
             {
-                aquarium.EndTurn(aquarium.liste_poissons, aquarium.liste_algues);
-            }
+                int NbBaby = 0;
+                Aquarium aquarium = new Aquarium();
+
+                FishsServices Fservice = new FishsServices(oConn, aquarium);
+                //aquarium.liste_poissons = Fservice.GetFishs();
+
+                SeaweedsServices Sservice = new SeaweedsServices(oConn, aquarium);
+
+                for (int i = 0; i < 7; i++)
+                {
+                    aquarium.liste_poissons.Clear();
+                    aquarium.liste_algues.Clear();
+                    Fservice.GetFishs();
+                    Sservice.GetSeaweeds();
+
+                    int count1 = 0;
+                    foreach (Seaweeds s in aquarium.liste_algues)
+                    {
+                        if (s.IsAlive) count1++;
+                    }
+                    Console.WriteLine($"\nLe nombre d'algues en vie est de :{count1} sur {aquarium.liste_algues.Count}");
+                    for (int j = 0; j < aquarium.liste_poissons.Count; j++)
+                    {
+                        Console.WriteLine($"Le sexe du poisson {aquarium.liste_poissons[j].Race}, nommé {aquarium.liste_poissons[j].Name}, est : {aquarium.liste_poissons[j].Sex}.");
+                        /*Est-il tj en vie , {aquarium.liste_poissons[j].IsAlive}*/
+                    }
+
+                    foreach (Fishs item in aquarium.liste_poissons)
+                    {
+                        item.ChangementEtat += (valeur =>
+                        {
+                            if (valeur == "Changement")
+                            {
+                                Fservice.UpdateFishs(item);
+                            }
+                            if (valeur == "Mort")
+                            {
+                                Fservice.DeleteFishs(item);
+                            }          
+                            if (valeur == "Naissance")
+                            {
+                                NbBaby++;
+                                Fservice.AddFishs(new Fishs(0, 6, 1, "Baby" + (NbBaby).ToString(), (item.dice.Next(2) == 0) ? Gender.Male : Gender.Female, item.Race, item.Habitat));
+                            }
+                        });
+                    }
+
+                    foreach (Seaweeds item in aquarium.liste_algues)
+                    {
+                        item.ChangementEtat += (valeur =>
+                        {
+                            if (valeur == "Changement")
+                            {
+                                Sservice.UpdateSeaweeds(item);
+
+                            }
+                            if (valeur == "Mort")
+                            {
+                                Sservice.DeleteSeaweeds(item);
+
+                            }
+                            if (valeur == "Naissance")
+                            {
+                                Sservice.AddSeaweeds(new Seaweeds(0, 5, 1, aquarium));
+                            }  
+                        });
+                    }
             
-            Console.ReadLine();
+                    aquarium.EndTurn(aquarium.liste_poissons, aquarium.liste_algues);
 
+                    foreach (Fishs item in aquarium.liste_poissons)
+                    {
+                        item.ChangementEtat -= (valeur =>
+                        {
+                            if (valeur == "Changement")
+                            {
+                                Fservice.UpdateFishs(item);
+                            }
+                            if (valeur == "Mort")
+                            {
+                                Fservice.DeleteFishs(item);
+                            }
+                            if (valeur == "Naissance")
+                            {
+                                NbBaby++;
+                                Fservice.AddFishs(new Fishs(0, 10, 1, "Baby" + (NbBaby).ToString(), (item.dice.Next(2) == 0) ? Gender.Male : Gender.Female, item.Race, item.Habitat));
+                            }
+                        });
+                    }
 
+                    foreach (Seaweeds item in aquarium.liste_algues)
+                    {
+                        item.ChangementEtat -= (valeur =>
+                        {
+                            if (valeur == "Changement")
+                            {
+                                Sservice.UpdateSeaweeds(item);
+
+                            }
+                            if (valeur == "Mort")
+                            {
+                                Sservice.DeleteSeaweeds(item);
+
+                            }
+                            if (valeur == "Naissance")
+                            {
+                                Sservice.AddSeaweeds(new Seaweeds(0, 5, 1, aquarium));
+                            }
+                        });
+                    }
+                    //int count2 = 0;
+                    //foreach (Seaweeds s in aquarium.liste_algues)
+                    //{
+                    //    if (s.IsAlive) count2++;
+                    //}
+                    //Console.WriteLine($"\nLe nombre d'algues en vie est de :{count2} sur {aquarium.liste_algues.Count}");
+                    //for (int j = 0; j < aquarium.liste_poissons.Count; j++)
+                    //{
+                    //    Console.WriteLine($"Le sexe du poisson {aquarium.liste_poissons[j].Race}, nommé {aquarium.liste_poissons[j].Name}, est : {aquarium.liste_poissons[j].Sex}.");
+                    //    /*Est-il tj en vie , {aquarium.liste_poissons[j].IsAlive}*/
+                    //}
+                    Console.WriteLine($"Le tour {aquarium.Turns} prend fin.");
+                    Console.WriteLine($"-----------------------------------");
+                }
+                Console.ReadLine();
+            }
         }
     }
 }
